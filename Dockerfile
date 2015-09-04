@@ -13,7 +13,7 @@ RUN apk update && apk --update add ca-certificates \
     mkdir -p /etc/haproxy/certs/
 
 # Install confd
-RUN wget https://github.com/kelseyhightower/confd/releases/download/v${confd_ver}/confd-${confd_ver}-linux-amd64 -O /bin/confd && \
+RUN wget https://github.com/jnummelin/confd/releases/download/v0.11.0/confd_alpine -O /bin/confd && \
 	chmod +x /bin/confd
 
 ADD confd /etc/confd

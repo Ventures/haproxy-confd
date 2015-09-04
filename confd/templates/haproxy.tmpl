@@ -46,8 +46,8 @@ frontend http-in
 {{range $service := ls "/services"}}
 backend {{$service}}
     balance roundrobin
-    {{range gets (printf "/services/%s/upstream/*" $service)}}
-    server {{base .Key}} {{.Value}} check
+    {{range lookupIP $service}}
+    server {{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
     {{end}}
 {{end}}
 {{range $name := ls "/tcp-services"}}
