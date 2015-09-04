@@ -1,0 +1,4 @@
+{{range getvs "/services/*/cert"}}
+{{.}}
+{{getenv "CERT_SPLIT_TOKEN"}}
+{{end}}
