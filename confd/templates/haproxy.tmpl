@@ -24,30 +24,34 @@ defaults
     timeout http-keep-alive 10s
     timeout check           10s
 
-frontend http-in
+listen http-in
     bind *:80
+    {{if exists "/certs"}}
+    bind *:443 ssl crt /etc/haproxy/certs/ no-sslv3
+    {{end}}
+    reqadd X-Forwarded-Proto:\ https if { ssl_fc }
+    reqadd X-Forwarded-Port:\ 443 if { ssl_fc }
 
     {{range $service := ls "/services"}}
-
     {{$key := printf "/services/%s/domain" $service}}  {{if exists $key}}
     acl host_{{$service}} hdr(host) -i {{getv $key}}
+    acl host_{{$service}} hdr(host) -i {{getv $key}}:80
+    {{if exists "/certs" }}
+    acl host_{{$service}} req_ssl_sni -i {{getv $key}}
+    acl host_{{$service}} req_ssl_sni -i {{getv $key}}:443
     {{end}}
-    {{$key := printf "/services/%s/url_reg" $service}}  {{if exists $key}}
-    acl host_{{$service}} url_reg -i {{getv $key}}
     {{end}}
-    acl {{$service}}_health path_beg /ping
     {{end}}
 
     {{range $service := ls "/services"}}
     use_backend {{$service}} if host_{{$service}}
-    use_backend {{$service}} if {{$service}}_health
     {{end}}
 
 {{range $service := ls "/services"}}
 backend {{$service}}
     balance roundrobin
     {{range lookupIP $service}}
-    server {{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
+    server {{$service}}_{{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
     {{end}}
 {{end}}
 {{range $name := ls "/tcp-services"}}
