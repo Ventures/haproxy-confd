@@ -5,11 +5,11 @@ MAINTAINER jussi.nummelin@digia.com
 # Default to grid internal etcd
 ENV ETCD_NODE etcd.kontena.local:2379
 ENV confd_ver 0.10.0
-ENV CERT_SPLIT_TOKEN %_%_%_%_%_%_%_%_%_%_%_%_%
+ENV CERT_SPLIT_TOKEN ====================
 
 # Install needed packages
 RUN apk update && apk --update add ca-certificates \
-    libssl1.0 openssl bash haproxy coreutils && \
+    libssl1.0 openssl bash haproxy coreutils curl && \
     mkdir -p /etc/haproxy/certs/
 
 # Install confd

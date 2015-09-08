@@ -2,7 +2,8 @@
 prefix = ""
 keys = [
   "services",
-  "tcp-services"
+  "tcp-services",
+  "certs"
 ]
 
 owner = "haproxy"
