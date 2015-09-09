@@ -6,6 +6,7 @@ MAINTAINER jussi.nummelin@digia.com
 ENV ETCD_NODE etcd.kontena.local:2379
 ENV confd_ver 0.10.0
 ENV CERT_SPLIT_TOKEN ====================
+ENV BACKEND_POLLING_INTERVAL 1
 
 # Install needed packages
 RUN apk update && apk --update add ca-certificates \
