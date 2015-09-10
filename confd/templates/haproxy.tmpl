@@ -13,7 +13,6 @@ defaults
     option                  splice-auto
     option                  http-keep-alive
     option                  redispatch
-    option                  forwardfor
     retries                 3
     # disconnect slow handshake clients early, protect from
     # resources exhaustion attacks
@@ -50,17 +49,19 @@ listen http-in
 
 {{range $service := ls "/services"}}
 backend {{$service}}
+    option                  forwardfor
     balance roundrobin
     {{range lookupIP $service}}
     server {{$service}}_{{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
     {{end}}
 {{end}}
-{{range $name := ls "/tcp-services"}}
-listen {{$name}}
+# TCP Services
+{{range $service := ls "/tcp-services"}}
+listen {{$service}}
     mode tcp
-    bind {{printf "/tcp-services/%s/ports" $name | getv}}
-    {{range $upstream := ls (printf "/tcp-services/%s/upstreams" $name)}}
-    server {{$upstream}} {{printf "/tcp-services/%s/upstreams/%s" $name $upstream | getv}} check
+    bind *:{{printf "/tcp-services/%s/external_port" $service | getv}}
+    {{range lookupIP $service}}
+    server {{$service}}_{{.}} {{.}}:{{printf "/tcp-services/%s/internal_port" $service | getv}} check
     {{end}}
 {{end}}
 
