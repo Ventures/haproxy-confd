@@ -3,7 +3,7 @@ FROM gliderlabs/alpine:3.2
 MAINTAINER jussi.nummelin@digia.com
 
 # Default to grid internal etcd
-ENV ETCD_NODE etcd.kontena.local:2379
+ENV ETCD_NODE http://etcd.kontena.local:2379
 ENV confd_ver 0.10.0
 ENV CERT_SPLIT_TOKEN ====================
 ENV BACKEND_POLLING_INTERVAL 1
