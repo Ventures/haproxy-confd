@@ -1,9 +1,17 @@
 HAProxy combined with confd for HTTP load balancing with automatic service discovery and reconfiguration throuh etcd.
 
+## Pre-requisites
+
+This setup depends on finding the service backends through DNS. If you are using Docker to run your services we highly suggest to use some orchestration layer such as Kontena. At least consider using for example weave to network your containers and to give them addressable DNS entries.
+
+## Features
+
 * HAProxy 1.5.x backed by Confd 0.10.0
+  * ConfD from jnummelin/confd fork for time being since that supports dynamic backend DNS discovery and has pre-build package for Alpine Linux
 * Uses zero-downtime reconfiguration (e.g - instead of harpy reload, which will drop all connections, will gradually transfer new connections to the new config)
-* Added support for url rexeg (not reggae, damn you spell checker) for routing, in addition to the usual hostname pattern
 * Added validation for existence of keys in backing kv store, to prevent failures
+* Supports certificates from etcd as well
+  * For time being the certs are not encrypted so make sure the access to your etcd is secure in other ways.
 
 ## Configuration through etcd
 
@@ -20,32 +28,42 @@ etcdctl set "/haproxy-<haproxy_id>/services/myapp/domain" "example.org"
 etcdctl set "/haproxy-<haproxy_id>/services/myapp/port" "80"
 ```
 
-Based on this Kontena agent will populate automatically the backend IP and port information in following keys:
-
-```
-/haproxy-haproxy-1/services/ghost/ghost-1 => 10.81.16.197:80
-/haproxy-haproxy-1/services/ghost/ghost-2 => 10.81.10.33:80
-```
+The dynamic backend resolving expects to find your backend IPs from DNS using the given service name.
 
 # Creating the proxy
 
-Create and start the service making sure to expose port 80 on the host machine and open it in your firewall.
+Create and start the service making sure to expose port 80 and 443 on the host machine and open them in your firewall.
 
 **REMEMBER to set the environment variable *HAPROXY-ID* so that each proxy service will read correct configuration from etcd.**
 
 ```bash
-kontena service create haproxy <repo?>/confd-haproxy:latest -p 80:80 -e HAPROXY-ID=haproxy-1
-kontena service deploy haproxy
+docker run -d -e HAPROXY-ID=haproxy-1 -p 80:80 -p 443:443 -e ETCD_NODE=<DNS/IP of your etcd> confd-haproxy:latest
 ```
 
-If you scale your app or the app containers change, Kontena agent will automatically update the backend addresses.
+If you scale your app or the app containers change, built in DNS resolving will automatically update the backend addresses.
 
 To *remove a service*, and so a directory, you must type
 ```bash
 etcdctl rmdir "/haproxy-<haproxy_id>/services/myapp"
 ```
 
-The commands for a tcp-service are the same but with *tcp-services* instead of *services*
+## TCP services
 
+TCP Service proxying is also supported and the overall mechanism is the same as with HTTP services. For TCP services you need to configure both external and internal ports via etcd:
+```bash
+etcdctl set "/haproxy-<haproxy_id>/tcp-services/galera/external_port" "3306"
+etcdctl set "/haproxy-<haproxy_id>/tcp-services/galera/internal_port" "3306"
+
+```
+
+The above will tell HAProxy to listen to conections in port 3306 and direct traffic to backends found via DNS discovery using name *galera*
+
+## Building the image
+
+The image is based on Alpine Linux image provided by Gliderlabs. Alpine is used since it's really minimal in size yet it provides all necessary building blocks.
+
+```
+docker build -t your_repo/haproxy-confd:<version> .
+```
 
 Have fun !
