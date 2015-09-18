@@ -36,10 +36,13 @@ listen http-in
     {{$key := printf "/services/%s/domain" $service}}  {{if exists $key}}
     acl host_{{$service}} hdr(host) -i {{getv $key}}
     acl host_{{$service}} hdr(host) -i {{getv $key}}:80
+    {{end}}
+    {{$key := printf "/services/%s/url_beg" $service}}  {{if exists $key}}
+    acl host_{{$service}} url_beg {{getv $key}}
+    {{end}}
     {{if exists "/certs" }}
     acl host_{{$service}} req_ssl_sni -i {{getv $key}}
     acl host_{{$service}} req_ssl_sni -i {{getv $key}}:443
-    {{end}}
     {{end}}
     {{end}}
 
@@ -51,6 +54,9 @@ listen http-in
 backend {{$service}}
     option                  forwardfor
     balance roundrobin
+    {{$key := printf "/services/%s/url_beg" $service}}  {{if exists $key}}
+    reqrep ^([^\ :]*)\ {{getv $key}}[/]?(.*)     \1\ /\2
+    {{end}}
     {{range lookupIP $service}}
     server {{$service}}_{{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
     {{end}}

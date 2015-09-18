@@ -21,6 +21,8 @@ etcdctl mkdir "/haproxy-<haproxy_id>/services"
 etcdctl mkdir "/haproxy-<haproxy_id>/tcp-services"
 ```
 
+### Basic configuration
+
 Depending on your needs, create one or more services or tcp-services.
 For instance, to create an http service named *myapp* linked to the domain *example.org*.
 ```bash
@@ -29,6 +31,22 @@ etcdctl set "/haproxy-<haproxy_id>/services/myapp/port" "80"
 ```
 
 The dynamic backend resolving expects to find your backend IPs from DNS using the given service name.
+
+### Backend selection through URL matching
+
+Currently this HAProxy setup supports URL beginning matching (url_beg). This can be very handy e.g. in cases where HAProxy is used as API proxy. In this case you can route requests for same domain but for different paths to different backends:
+```
+http://domain/api_A
+http://domain/api_B
+```
+To achieve this setup following config on etcd:
+```bash
+etcdctl set "/haproxy-<haproxy_id>/services/myapi/url_beg" "/api_A"
+etcdctl set "/haproxy-<haproxy_id>/services/myapi/port" "80"
+tcdctl set "/haproxy-<haproxy_id>/services/otherapi/url_beg" "/api_B"
+etcdctl set "/haproxy-<haproxy_id>/services/otherapi/port" "80"
+```
+
 
 # Creating the proxy
 

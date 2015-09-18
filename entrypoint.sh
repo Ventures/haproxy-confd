@@ -16,9 +16,9 @@ set -eo pipefail
 
 # Create base dir structure in etcd as confd will complain about missing keys that are watched
 echo "Creating base structure for etcd..."
-curl -s http://$ETCD_NODE/v2/keys/services -XPUT -d dir=true
-curl -s http://$ETCD_NODE/v2/keys/tcp-services -XPUT -d dir=true
-curl -s http://$ETCD_NODE/v2/keys/certs -XPUT -d dir=true
+curl -s $ETCD_NODE/v2/keys/services -XPUT -d dir=true
+curl -s $ETCD_NODE/v2/keys/tcp-services -XPUT -d dir=true
+curl -s $ETCD_NODE/v2/keys/certs -XPUT -d dir=true
 echo "..done"
 
 echo "[haproxy-confd] booting HAProxy $HAPROXY_ID. Reading configuration from ETCD: $ETCD_NODE"
