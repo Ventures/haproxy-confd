@@ -1,5 +1,4 @@
 global
-    daemon  off
     pidfile /var/run/haproxy.pid
     user                    haproxy
     group                   haproxy
@@ -23,6 +22,16 @@ defaults
     timeout server          1m
     timeout http-keep-alive 10s
     timeout check           10s
+
+
+resolvers dns
+     {{range $dns := split (getenv "DNS_SERVERS") "\n" }}
+     nameserver dns_{{$dns}} {{$dns}}
+     {{end}}
+     resolve_retries       3
+     timeout retry         1s
+     hold valid           10s
+
 
 listen http-in
     bind *:80
@@ -53,18 +62,28 @@ listen http-in
 {{range $service := ls "/services"}}
 backend {{$service}}
     option                  forwardfor
-    balance roundrobin
+    {{$key := printf "/services/%s/balance" $service}}  {{if exists $key}}
+    balance                 {{getv $key}}
+    {{else}}
+    balance                 roundrobin
+    {{end}}
     {{$key := printf "/services/%s/url_beg" $service}}  {{if exists $key}}
     reqrep ^([^\ :]*)\ {{getv $key}}[/]?(.*)     \1\ /\2
     {{end}}
-    {{range lookupIP $service}}
-    server {{$service}}_{{.}} {{.}}:{{printf "/services/%s/port" $service | getv}} check
-    {{end}}
+    server {{$service}} {{$service}}:{{printf "/services/%s/port" $service | getv}} check resolvers dns
 {{end}}
+
 # TCP Services
 {{range $service := ls "/tcp-services"}}
 listen {{$service}}
     mode tcp
+
+    {{$key := printf "/tcp-services/%s/balance" $service}}  {{if exists $key}}
+    balance                 {{getv $key}}
+    {{else}}
+    balance                 roundrobin
+    {{end}}
+
     bind *:{{printf "/tcp-services/%s/external_port" $service | getv}}
     {{range lookupIP $service}}
     server {{$service}}_{{.}} {{.}}:{{printf "/tcp-services/%s/internal_port" $service | getv}} check
@@ -85,4 +104,4 @@ listen stats
     http-request auth unless auth_ok
 
 userlist stats-auth
-    user admin insecure-password supersecret
+    user admin insecure-password {{getenv "STATS_PASSWORD"}}

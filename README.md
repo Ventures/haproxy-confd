@@ -7,7 +7,7 @@ This setup depends on finding the service backends through DNS. If you are using
 ## Features
 
 * HAProxy 1.5.x backed by Confd 0.10.0
-  * ConfD from jnummelin/confd fork for time being since that supports dynamic backend DNS discovery and has pre-build package for Alpine Linux
+  * ConfD from jnummelin/confd fork for time being since that has pre-build package for Alpine Linux
 * Uses zero-downtime reconfiguration (e.g - instead of harpy reload, which will drop all connections, will gradually transfer new connections to the new config)
 * Added validation for existence of keys in backing kv store, to prevent failures
 * Supports certificates from etcd as well
@@ -30,7 +30,7 @@ etcdctl set "/haproxy-<haproxy_id>/services/myapp/domain" "example.org"
 etcdctl set "/haproxy-<haproxy_id>/services/myapp/port" "80"
 ```
 
-The dynamic backend resolving expects to find your backend IPs from DNS using the given service name.
+The dynamic backend resolving expects to find your backend IPs from DNS using the given service name. This is achieved using the new DNS resolving functionality of HAProxy 1.6.
 
 ### Backend selection through URL matching
 
@@ -43,10 +43,20 @@ To achieve this setup following config on etcd:
 ```bash
 etcdctl set "/haproxy-<haproxy_id>/services/myapi/url_beg" "/api_A"
 etcdctl set "/haproxy-<haproxy_id>/services/myapi/port" "80"
-tcdctl set "/haproxy-<haproxy_id>/services/otherapi/url_beg" "/api_B"
+etcdctl set "/haproxy-<haproxy_id>/services/otherapi/url_beg" "/api_B"
 etcdctl set "/haproxy-<haproxy_id>/services/otherapi/port" "80"
 ```
 
+### Selecting load balancing strategy
+
+As we all know you sometimes need to select different lb strategy for different apps and you can do that easily with this setup:
+
+```bash
+etcdctl set "/haproxy-<haproxy_id>/services/myapp/balancing" "cookie"
+```
+If you do not set the strategy the load balancer will default to `roundrobin`
+
+For description on different modes see HAProxy docs:
 
 # Creating the proxy
 
@@ -83,5 +93,14 @@ The image is based on Alpine Linux image provided by Gliderlabs. Alpine is used 
 ```
 docker build -t your_repo/haproxy-confd:<version> .
 ```
+
+## Etcd for Local testing
+
+For local testing you need etcd running. Easiest way is to use docker for that:
+```
+docker run -d -p 2379:2379 kontena/etcd:2.1.2 --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://$(docker-machine ip dev):2379
+```
+
+
 
 Have fun !
